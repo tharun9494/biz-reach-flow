@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { LogOut, UserCircle, Search, Phone, LayoutDashboard } from "lucide-react";
+import { LogOut, UserCircle, Search, Phone, LayoutDashboard, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -14,9 +14,10 @@ const AppSidebar = () => {
     navigate("/login");
   };
 
-  const roleLabel = role === "lead_hunter" ? "Lead Hunter" : "Caller";
-  const roleIcon = role === "lead_hunter" ? Search : Phone;
+  const roleLabel = role === "admin" ? "Admin" : role === "lead_hunter" ? "Lead Hunter" : "Caller";
+  const roleIcon = role === "admin" ? Shield : role === "lead_hunter" ? Search : Phone;
   const RoleIcon = roleIcon;
+  const dashPath = role === "admin" ? "/admin" : role === "lead_hunter" ? "/hunter" : "/caller";
 
   return (
     <>
@@ -47,7 +48,7 @@ const AppSidebar = () => {
 
         <nav className="flex-1 p-4">
           <button
-            onClick={() => navigate(role === "lead_hunter" ? "/hunter" : "/caller")}
+            onClick={() => navigate(dashPath)}
             className={cn(
               "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
               "hover:bg-[hsl(var(--sidebar-muted))]",
@@ -74,7 +75,7 @@ const AppSidebar = () => {
       {/* Mobile bottom nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[hsl(var(--sidebar-bg))] border-t border-[hsl(var(--sidebar-muted))] flex items-center justify-around py-2 px-4">
         <button
-          onClick={() => navigate(role === "lead_hunter" ? "/hunter" : "/caller")}
+          onClick={() => navigate(dashPath)}
           className="flex flex-col items-center gap-1 text-[hsl(var(--sidebar-accent))]"
         >
           <LayoutDashboard className="h-5 w-5" />

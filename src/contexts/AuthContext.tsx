@@ -3,7 +3,7 @@ import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User } from "f
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 
-type UserRole = "lead_hunter" | "caller" | null;
+type UserRole = "lead_hunter" | "caller" | "admin" | null;
 
 interface AuthContextType {
   user: User | null;
