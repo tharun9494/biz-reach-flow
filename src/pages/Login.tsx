@@ -24,17 +24,37 @@ const Login = () => {
     setLoading(true);
     try {
       await login(email, password);
-      // Auth context handles the state; fetch role for immediate redirect
       const { auth: firebaseAuth } = await import("@/lib/firebase");
       const currentUser = firebaseAuth.currentUser;
       if (!currentUser) throw new Error("Login failed");
-      const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-      if (userDoc.exists()) {
-        const role = userDoc.data().role;
-        navigate(role === "admin" ? "/admin" : role === "lead_hunter" ? "/hunter" : "/caller", { replace: true });
-      } else {
-        navigate("/login");
+      
+      let role = "caller"; // default fallback
+      try {
+        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+        if (userDoc.exists()) {
+          role = userDoc.data().role || "caller";
+        } else {
+          // Auto-create user doc if it doesn't exist
+          const { setDoc } = await import("firebase/firestore");
+          const isAdmin = email.toLowerCase() === "ontimittatharun2002@gmail.com";
+          const autoRole = isAdmin ? "admin" : "caller";
+          await setDoc(doc(db, "users", currentUser.uid), {
+            uid: currentUser.uid,
+            email: currentUser.email,
+            name: currentUser.displayName || email.split("@")[0],
+            role: autoRole,
+          });
+          role = autoRole;
+        }
+      } catch (firestoreErr) {
+        // If Firestore rules block the read, fallback — check known admin email
+        console.warn("Firestore read failed, using fallback:", firestoreErr);
+        if (email.toLowerCase() === "ontimittatharun2002@gmail.com") {
+          role = "admin";
+        }
       }
+      
+      navigate(role === "admin" ? "/admin" : role === "lead_hunter" ? "/hunter" : "/caller", { replace: true });
       toast({ title: "Welcome back!", description: "Logged in successfully." });
     } catch (err: any) {
       toast({
