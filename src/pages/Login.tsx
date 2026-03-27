@@ -23,11 +23,12 @@ const Login = () => {
     if (!email.trim() || !password.trim()) return;
     setLoading(true);
     try {
-      const { user } = await import("firebase/auth").then(m => m.signInWithEmailAndPassword(
-        (await import("@/lib/firebase")).auth, email, password
-      ));
-      // We need to use the direct firebase call here to get the user for redirect
-      const userDoc = await getDoc(doc(db, "users", user.uid));
+      await login(email, password);
+      // After login, auth state change will set user; we need to fetch role for redirect
+      const { signInWithEmailAndPassword } = await import("firebase/auth");
+      const { auth: firebaseAuth } = await import("@/lib/firebase");
+      const cred = await signInWithEmailAndPassword(firebaseAuth, email, password);
+      const userDoc = await getDoc(doc(db, "users", cred.user.uid));
       if (userDoc.exists()) {
         const role = userDoc.data().role;
         navigate(role === "lead_hunter" ? "/hunter" : "/caller", { replace: true });
