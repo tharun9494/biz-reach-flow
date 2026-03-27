@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 
 type UserRole = "lead_hunter" | "caller" | "admin" | null;
@@ -33,23 +33,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (firebaseUser) {
         setUser(firebaseUser);
         try {
-          const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data();
+          const userDocRef = doc(db, "users", firebaseUser.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            const data = userDocSnap.data();
             setRole(data.role as UserRole);
             setUserName(data.name || firebaseUser.email || "");
           } else {
-            // Fallback for known admin
-            if (firebaseUser.email === "ontimittatharun2002@gmail.com") {
-              setRole("admin");
-            } else {
-              setRole(null);
+            // Auto-create Firestore user doc for existing Auth users
+            const isAdmin = firebaseUser.email === "ontimittatharun2002@gmail.com";
+            const autoRole = isAdmin ? "admin" : "caller";
+            const userName = firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "";
+            try {
+              await setDoc(userDocRef, {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                name: userName,
+                role: autoRole,
+              });
+            } catch (writeErr) {
+              console.warn("Failed to auto-create user doc:", writeErr);
             }
-            setUserName(firebaseUser.email || "");
+            setRole(autoRole as UserRole);
+            setUserName(userName || firebaseUser.email || "");
           }
         } catch (err) {
           console.warn("Failed to fetch user doc:", err);
-          // Fallback for known admin when Firestore rules block access
           if (firebaseUser.email === "ontimittatharun2002@gmail.com") {
             setRole("admin");
           } else {
