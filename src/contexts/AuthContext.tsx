@@ -32,13 +32,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
-        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setRole(data.role as UserRole);
-          setUserName(data.name || firebaseUser.email || "");
-        } else {
-          setRole(null);
+        try {
+          const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setRole(data.role as UserRole);
+            setUserName(data.name || firebaseUser.email || "");
+          } else {
+            // Fallback for known admin
+            if (firebaseUser.email === "ontimittatharun2002@gmail.com") {
+              setRole("admin");
+            } else {
+              setRole(null);
+            }
+            setUserName(firebaseUser.email || "");
+          }
+        } catch (err) {
+          console.warn("Failed to fetch user doc:", err);
+          // Fallback for known admin when Firestore rules block access
+          if (firebaseUser.email === "ontimittatharun2002@gmail.com") {
+            setRole("admin");
+          } else {
+            setRole(null);
+          }
           setUserName(firebaseUser.email || "");
         }
       } else {
