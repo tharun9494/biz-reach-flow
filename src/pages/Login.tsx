@@ -31,7 +31,7 @@ const Login = () => {
       const userDoc = await getDoc(doc(db, "users", currentUser.uid));
       if (userDoc.exists()) {
         const role = userDoc.data().role;
-        navigate(role === "lead_hunter" ? "/hunter" : "/caller", { replace: true });
+        navigate(role === "admin" ? "/admin" : role === "lead_hunter" ? "/hunter" : "/caller", { replace: true });
       } else {
         navigate("/login");
       }

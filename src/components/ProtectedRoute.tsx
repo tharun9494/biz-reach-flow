@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRole: "lead_hunter" | "caller";
+  allowedRole: "lead_hunter" | "caller" | "admin";
 }
 
 const ProtectedRoute = ({ children, allowedRole }: ProtectedRouteProps) => {
@@ -20,7 +20,7 @@ const ProtectedRoute = ({ children, allowedRole }: ProtectedRouteProps) => {
 
   if (!user) return <Navigate to="/login" replace />;
   if (role !== allowedRole) {
-    const redirect = role === "lead_hunter" ? "/hunter" : role === "caller" ? "/caller" : "/login";
+    const redirect = role === "admin" ? "/admin" : role === "lead_hunter" ? "/hunter" : role === "caller" ? "/caller" : "/login";
     return <Navigate to={redirect} replace />;
   }
 
