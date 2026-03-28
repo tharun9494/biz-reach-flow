@@ -358,51 +358,6 @@ const HunterDashboard = () => {
           </div>
         </div>
 
-        {/* Call Notes Section */}
-        <Card className="border-accent/30">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-accent" />
-              Call Notes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="text-sm text-muted-foreground">
-                Add notes about your leads, calling preferences, or any important information for the calling team.
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">General Notes</label>
-                  <textarea
-                    placeholder="Add general notes about leads, best times to call, etc..."
-                    className="w-full p-3 border rounded-md text-sm resize-none"
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Calling Instructions</label>
-                  <textarea
-                    placeholder="Specific instructions for callers about approach, pitch, etc..."
-                    className="w-full p-3 border rounded-md text-sm resize-none"
-                    rows={3}
-                  />
-                </div>
-              </div>
-              
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" size="sm">
-                  Clear Notes
-                </Button>
-                <Button className="bg-accent text-accent-foreground hover:bg-accent/90" size="sm">
-                  Save Notes
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {showForm && (
           <Card className="border-accent/30 shadow-lg animate-in slide-in-from-top-2 duration-300">
             <CardHeader>
