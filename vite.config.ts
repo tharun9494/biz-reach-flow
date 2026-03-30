@@ -1,16 +1,19 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
+import path from "path";
 
 export default defineConfig({
   plugins: [react()],
   base: "./",
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
   build: {
-    outDir: "dist",
-    rollupOptions: {
-      external: [/^@\/.+/] // Externalize all @/ imports
-    }
+    outDir: "dist"
   },
   server: {
-    middlewareMode: true // Better for SPA routing
+    // Standard development server configuration
   }
 });
