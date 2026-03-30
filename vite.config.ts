@@ -1,13 +1,16 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import react from "@vitejs/plugin-react-swc";
 
 export default defineConfig({
   plugins: [react()],
-  base: "./", // Ensures proper routing for Vite
+  base: "./",
   build: {
     outDir: "dist",
+    rollupOptions: {
+      external: [/^@\/.+/] // Externalize all @/ imports
+    }
   },
   server: {
-    historyApiFallback: true, // Handles SPA routing in development
+    middlewareMode: true // Better for SPA routing
   }
 });
