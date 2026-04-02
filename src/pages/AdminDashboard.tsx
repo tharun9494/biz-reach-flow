@@ -102,6 +102,21 @@ const AdminDashboard = () => {
     }).sort((a, b) => b.total - a.total);
   }, [users, leads]);
 
+  const callerPerformance = useMemo(() => {
+    const callers = users.filter((u) => u.role === "caller");
+    return callers.map((c) => {
+      // For now, assume callers work on leads that are not pending
+      const workedLeads = leads.filter((l) => l.status !== "pending");
+      return {
+        name: c.name,
+        total: workedLeads.length, // This would be based on actual assignment logic
+        pending: workedLeads.filter((l) => l.status === "pending").length,
+        interested: workedLeads.filter((l) => l.status === "interested").length,
+        rejected: workedLeads.filter((l) => l.status === "rejected").length,
+      };
+    }).sort((a, b) => b.total - a.total);
+  }, [users, leads]);
+
   // Category breakdown
   const categoryData = useMemo(() => {
     const cats: Record<string, number> = {};
@@ -248,14 +263,69 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="analytics" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="analytics"><BarChart3 className="h-4 w-4 mr-1" />Analytics</TabsTrigger>
-            <TabsTrigger value="team"><Award className="h-4 w-4 mr-1" />Team Performance</TabsTrigger>
+        <Tabs defaultValue="overview" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="overview"><BarChart3 className="h-4 w-4 mr-1" />Overview</TabsTrigger>
+            <TabsTrigger value="hunters"><Target className="h-4 w-4 mr-1" />Lead Hunters</TabsTrigger>
+            <TabsTrigger value="callers"><Phone className="h-4 w-4 mr-1" />Callers</TabsTrigger>
             <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" />User Management</TabsTrigger>
+            <TabsTrigger value="analytics"><Award className="h-4 w-4 mr-1" />Analytics</TabsTrigger>
           </TabsList>
 
-          {/* Analytics Tab */}
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-4">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {[
+                { label: "Total Leads", value: leadStats.total, icon: BarChart3, color: "text-primary" },
+                { label: "Pending", value: leadStats.pending, icon: Clock, color: "text-yellow-500" },
+                { label: "Interested", value: leadStats.interested, icon: CheckCircle2, color: "text-green-500" },
+                { label: "Rejected", value: leadStats.rejected, icon: XCircle, color: "text-red-500" },
+                { label: "Conversion", value: `${conversionRate}%`, icon: TrendingUp, color: "text-accent" },
+                { label: "Team Size", value: users.length, icon: Users, color: "text-primary" },
+              ].map((s) => (
+                <Card key={s.label}>
+                  <CardContent className="pt-5 pb-4">
+                    <div className="flex items-center gap-3">
+                      <s.icon className={`h-5 w-5 ${s.color}`} />
+                      <div>
+                        <p className="text-2xl font-bold text-foreground">{s.value}</p>
+                        <p className="text-xs text-muted-foreground">{s.label}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            {/* Quick Stats */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader><CardTitle className="text-base">Team Overview</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Admin Users</span>
+                    <Badge variant="outline">{users.filter(u => u.role === 'admin').length}</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Lead Hunters</span>
+                    <Badge className="bg-primary text-primary-foreground">{users.filter(u => u.role === 'lead_hunter').length}</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Callers</span>
+                    <Badge variant="secondary">{users.filter(u => u.role === 'caller').length}</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader><CardTitle className="text-base">Recent Activity</CardTitle></CardHeader>
+                <CardContent>
+                  <p className="text-center text-muted-foreground py-4">Activity tracking coming soon</p>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
           <TabsContent value="analytics" className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               {/* Status Pie */}
@@ -319,10 +389,10 @@ const AdminDashboard = () => {
             </div>
           </TabsContent>
 
-          {/* Team Performance Tab */}
-          <TabsContent value="team" className="space-y-4">
+          {/* Lead Hunters Tab */}
+          <TabsContent value="hunters" className="space-y-4">
             <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><Award className="h-5 w-5 text-accent" />Lead Hunter Performance</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="flex items-center gap-2"><Target className="h-5 w-5 text-primary" />Lead Hunter Performance</CardTitle></CardHeader>
               <CardContent>
                 {hunterPerformance.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No lead hunters found</p>
@@ -334,25 +404,35 @@ const AdminDashboard = () => {
                           <div className="flex items-center gap-2">
                             {i === 0 && <Award className="h-5 w-5 text-yellow-500" />}
                             <span className="font-semibold text-foreground">{h.name}</span>
+                            <Badge className="bg-primary text-primary-foreground">Hunter</Badge>
                           </div>
-                          <Badge variant="outline">{h.total} leads</Badge>
+                          <div className="flex gap-2">
+                            <Badge variant="outline">{h.total} leads</Badge>
+                            <Badge className={h.total > 0 ? "bg-green-500/20 text-green-500" : "bg-gray-500/20 text-gray-500"}>
+                              {h.total > 0 ? `${Math.round((h.interested / h.total) * 100)}% conv.` : "No data"}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-3 text-center">
-                          <div className="bg-yellow-500/10 rounded-md p-2">
-                            <p className="text-lg font-bold text-yellow-500">{h.pending}</p>
+                        <div className="grid grid-cols-4 gap-3 text-center">
+                          <div className="bg-blue-500/10 rounded-md p-3">
+                            <p className="text-xl font-bold text-blue-500">{h.total}</p>
+                            <p className="text-xs text-muted-foreground">Total Added</p>
+                          </div>
+                          <div className="bg-yellow-500/10 rounded-md p-3">
+                            <p className="text-xl font-bold text-yellow-500">{h.pending}</p>
                             <p className="text-xs text-muted-foreground">Pending</p>
                           </div>
-                          <div className="bg-green-500/10 rounded-md p-2">
-                            <p className="text-lg font-bold text-green-500">{h.interested}</p>
+                          <div className="bg-green-500/10 rounded-md p-3">
+                            <p className="text-xl font-bold text-green-500">{h.interested}</p>
                             <p className="text-xs text-muted-foreground">Interested</p>
                           </div>
-                          <div className="bg-red-500/10 rounded-md p-2">
-                            <p className="text-lg font-bold text-red-500">{h.rejected}</p>
+                          <div className="bg-red-500/10 rounded-md p-3">
+                            <p className="text-xl font-bold text-red-500">{h.rejected}</p>
                             <p className="text-xs text-muted-foreground">Rejected</p>
                           </div>
                         </div>
                         {h.total > 0 && (
-                          <div className="mt-3">
+                          <div className="mt-3 space-y-2">
                             <div className="flex justify-between text-xs text-muted-foreground mb-1">
                               <span>Conversion rate</span>
                               <span>{Math.round((h.interested / h.total) * 100)}%</span>
@@ -366,52 +446,137 @@ const AdminDashboard = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
 
-            {/* Recent Leads Table */}
+          {/* Callers Tab */}
+          <TabsContent value="callers" className="space-y-4">
             <Card>
-              <CardHeader><CardTitle className="text-base">All Leads Overview</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="flex items-center gap-2"><Phone className="h-5 w-5 text-green-500" />Caller Performance</CardTitle></CardHeader>
               <CardContent>
-                {leads.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No leads yet</p>
+                {callerPerformance.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No callers found</p>
                 ) : (
-                  <div className="overflow-auto max-h-[400px]">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Business</TableHead>
-                          <TableHead>Owner</TableHead>
-                          <TableHead>City</TableHead>
-                          <TableHead>Category</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Added By</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {leads.map((l) => {
-                          const addedByUser = users.find((u) => u.id === l.addedBy);
-                          return (
-                            <TableRow key={l.id}>
-                              <TableCell className="font-medium">{l.businessName}</TableCell>
-                              <TableCell>{l.ownerName}</TableCell>
-                              <TableCell>{l.city}</TableCell>
-                              <TableCell><Badge variant="outline">{l.category}</Badge></TableCell>
-                              <TableCell>
-                                <Badge className={
-                                  l.status === "pending" ? "bg-yellow-500/20 text-yellow-600 border-yellow-500/30" :
-                                  l.status === "interested" ? "bg-green-500/20 text-green-600 border-green-500/30" :
-                                  "bg-red-500/20 text-red-600 border-red-500/30"
-                                }>{l.status}</Badge>
-                              </TableCell>
-                              <TableCell className="text-muted-foreground text-sm">{addedByUser?.name || "Unknown"}</TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
+                  <div className="space-y-4">
+                    {callerPerformance.map((c, i) => (
+                      <div key={c.name} className="border border-border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            {i === 0 && <Award className="h-5 w-5 text-yellow-500" />}
+                            <span className="font-semibold text-foreground">{c.name}</span>
+                            <Badge variant="secondary"><Phone className="h-3 w-3 mr-1" />Caller</Badge>
+                          </div>
+                          <div className="flex gap-2">
+                            <Badge variant="outline">{c.total} calls</Badge>
+                            <Badge className={c.total > 0 ? "bg-green-500/20 text-green-500" : "bg-gray-500/20 text-gray-500"}>
+                              {c.total > 0 ? `${Math.round((c.interested / c.total) * 100)}% conv.` : "No data"}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-4 gap-3 text-center">
+                          <div className="bg-blue-500/10 rounded-md p-3">
+                            <p className="text-xl font-bold text-blue-500">{c.total}</p>
+                            <p className="text-xs text-muted-foreground">Total Called</p>
+                          </div>
+                          <div className="bg-yellow-500/10 rounded-md p-3">
+                            <p className="text-xl font-bold text-yellow-500">{c.pending}</p>
+                            <p className="text-xs text-muted-foreground">Pending</p>
+                          </div>
+                          <div className="bg-green-500/10 rounded-md p-3">
+                            <p className="text-xl font-bold text-green-500">{c.interested}</p>
+                            <p className="text-xs text-muted-foreground">Interested</p>
+                          </div>
+                          <div className="bg-red-500/10 rounded-md p-3">
+                            <p className="text-xl font-bold text-red-500">{c.rejected}</p>
+                            <p className="text-xs text-muted-foreground">Rejected</p>
+                          </div>
+                        </div>
+                        {c.total > 0 && (
+                          <div className="mt-3 space-y-2">
+                            <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                              <span>Conversion rate</span>
+                              <span>{Math.round((c.interested / c.total) * 100)}%</span>
+                            </div>
+                            <Progress value={Math.round((c.interested / c.total) * 100)} className="h-2" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>
             </Card>
+            
+            {/* Caller Work Queue */}
+            <Card>
+              <CardHeader><CardTitle className="text-base">Caller Work Queue</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-center text-muted-foreground py-4">Work assignment tracking coming soon</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* Status Pie */}
+              <Card>
+                <CardHeader><CardTitle className="text-base">Lead Status Distribution</CardTitle></CardHeader>
+                <CardContent>
+                  {leads.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No leads yet</p>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={250}>
+                      <PieChart>
+                        <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
+                          {pieData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i]} />)}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Category Bar */}
+              <Card>
+                <CardHeader><CardTitle className="text-base">Leads by Category</CardTitle></CardHeader>
+                <CardContent>
+                  {categoryData.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No data</p>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={250}>
+                      <BarChart data={categoryData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                        <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                        <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
+                        <Bar dataKey="value" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* City Bar */}
+              <Card className="md:col-span-2">
+                <CardHeader><CardTitle className="text-base">Leads by City / Area</CardTitle></CardHeader>
+                <CardContent>
+                  {cityData.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No data</p>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={250}>
+                      <BarChart data={cityData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                        <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                        <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
+                        <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* User Management Tab */}
